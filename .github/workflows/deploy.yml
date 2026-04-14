@@ -1,0 +1,303 @@
+name: CI/CD — Cybot
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION:       us-east-1
+  ECR_REPOSITORY:   cybot-backend
+  ECS_SERVICE:      cybot-backend-service
+  ECS_CLUSTER:      cybot-cluster
+  CONTAINER_NAME:   cybot_backend
+
+jobs:
+# ────────────────────────────────────────────────────────────────────────────
+# 1. Django backend — lint + test + coverage
+# ────────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Django Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        env:
+          DJANGO_SETTINGS_MODULE: core.settings
+          DJANGO_SECRET_KEY:      test-secret-key-minimum-50-chars-xxxxxxxxxxxxxxxx
+          DJANGO_DEBUG:           "True"
+          DATABASE_URL:           sqlite:///test_db.sqlite3
+          SUPABASE_URL:           https://placeholder.supabase.co
+          SUPABASE_ANON_KEY:      placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          SUPABASE_JWT_SECRET:    placeholder-jwt-secret-minimum-32-chars
+          REDIS_URL:              memory://
+          INTERNAL_SERVICE_KEY:   test-internal-key
+          OPENAI_API_KEY:         ""
+          HIBP_API_KEY:           ""
+          ML_MODEL_PATH:          ""
+        run: |
+          python -m pytest \
+            --tb=short \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            -q
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: backend/coverage.xml
+          flags: backend
+
+# ────────────────────────────────────────────────────────────────────────────
+# 2. TypeScript type-check (frontend)
+# ────────────────────────────────────────────────────────────────────────────
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run Jest tests
+        run: npm test -- --ci --coverage --passWithNoTests
+        env:
+          EXPO_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'push'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: frontend/coverage/lcov.info
+          flags: frontend
+
+# ────────────────────────────────────────────────────────────────────────────
+# 3. Security scan
+# ────────────────────────────────────────────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install security tools
+        run: pip install bandit safety
+
+      - name: Bandit SAST scan
+        run: |
+          bandit -r backend/ \
+            -x backend/tests/,backend/conftest.py \
+            -ll --format json -o bandit-report.json || true
+          bandit -r backend/ \
+            -x backend/tests/,backend/conftest.py \
+            -ll
+
+      - name: Safety dependency audit
+        run: safety check -r backend/requirements.txt
+
+# ────────────────────────────────────────────────────────────────────────────
+# 4. Build & push Docker image to ECR
+# ────────────────────────────────────────────────────────────────────────────
+  build-image:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
+        run: |
+          docker build \
+            --cache-from $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            ./backend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+# ────────────────────────────────────────────────────────────────────────────
+# 5. Deploy to ECS Fargate (production: main branch only)
+# ────────────────────────────────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to ECS
+    runs-on: ubuntu-latest
+    needs: build-image
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Download current ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition cybot-backend \
+            --query taskDefinition \
+            > task-definition.json
+
+      - id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition:  task-definition.json
+          container-name:   ${{ env.CONTAINER_NAME }}
+          image:            ${{ needs.build-image.outputs.image }}
+
+      - name: Deploy to ECS Fargate
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition:          ${{ steps.task-def.outputs.task-definition }}
+          service:                  ${{ env.ECS_SERVICE }}
+          cluster:                  ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Verify health endpoint
+        run: |
+          sleep 20
+          curl -f https://api.cybot.example.com/health/ || exit 1
+
+# ────────────────────────────────────────────────────────────────────────────
+# 6. Deploy Supabase Edge Functions
+# ────────────────────────────────────────────────────────────────────────────
+  deploy-edge-functions:
+    name: Deploy Edge Functions
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy all Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          for fn in notify-threat scheduled-scan ml-inference; do
+            supabase functions deploy $fn \
+              --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} \
+              --no-verify-jwt
+          done
+
+      - name: Set Edge Function secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase secrets set \
+            DJANGO_API_URL=${{ secrets.DJANGO_API_URL }} \
+            INTERNAL_SERVICE_KEY=${{ secrets.INTERNAL_SERVICE_KEY }} \
+            EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }} \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+
+# ────────────────────────────────────────────────────────────────────────────
+# 7. Build Expo app (EAS) — production
+# ────────────────────────────────────────────────────────────────────────────
+  build-mobile:
+    name: EAS Build (Production)
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version:  latest
+          token:        ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS Build (Android + iOS)
+        run: |
+          eas build \
+            --platform all \
+            --profile production \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_PUBLIC_API_BASE_URL: https://api.cybot.example.com/api/v1
+          EAS_PROJECT_ID:           ${{ secrets.EAS_PROJECT_ID }}
+          APP_ENV:                  production

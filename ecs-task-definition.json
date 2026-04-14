@@ -1,0 +1,56 @@
+{
+  "family": "cybot-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/cybotEcsTaskRole",
+
+  "containerDefinitions": [
+    {
+      "name": "cybot_backend",
+      "image": "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/cybot-backend:latest",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 8000, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "DJANGO_DEBUG",        "value": "False" },
+        { "name": "DJANGO_ALLOWED_HOSTS","value": "api.cybot.example.com" }
+      ],
+      "secrets": [
+        { "name": "DJANGO_SECRET_KEY",           "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:DJANGO_SECRET_KEY::" },
+        { "name": "DATABASE_URL",                "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:DATABASE_URL::" },
+        { "name": "SUPABASE_URL",                "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:SUPABASE_URL::" },
+        { "name": "SUPABASE_ANON_KEY",           "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:SUPABASE_ANON_KEY::" },
+        { "name": "SUPABASE_SERVICE_ROLE_KEY",   "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:SUPABASE_SERVICE_ROLE_KEY::" },
+        { "name": "SUPABASE_JWT_SECRET",         "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:SUPABASE_JWT_SECRET::" },
+        { "name": "OPENAI_API_KEY",              "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:OPENAI_API_KEY::" },
+        { "name": "HIBP_API_KEY",                "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:HIBP_API_KEY::" },
+        { "name": "REDIS_URL",                   "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:REDIS_URL::" },
+        { "name": "INTERNAL_SERVICE_KEY",        "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:INTERNAL_SERVICE_KEY::" },
+        { "name": "POLYGON_RPC_URL",             "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:POLYGON_RPC_URL::" },
+        { "name": "POLYGON_PRIVATE_KEY",         "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:POLYGON_PRIVATE_KEY::" },
+        { "name": "DATA_VERIFIER_CONTRACT_ADDRESS","valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:cybot/prod:DATA_VERIFIER_CONTRACT_ADDRESS::" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group":         "/ecs/cybot-backend",
+          "awslogs-region":        "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command":     ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"],
+        "interval":    30,
+        "timeout":     10,
+        "retries":     3,
+        "startPeriod": 60
+      },
+      "readonlyRootFilesystem": false,
+      "user": "cybot"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+# Expo generated native folders (EAS Build regenerates these from app.config.js)
+android/
+ios/
+
+# Expo local state
+.expo/
+
+# Node
+node_modules/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Build artifacts
+dist/
+web-build/
+
+# EAS
+google-service-account.json
+google-services.json

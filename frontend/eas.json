@@ -1,0 +1,48 @@
+{
+  "cli": {
+    "version": ">= 10.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": true },
+      "env": {
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_API_BASE_URL": "http://localhost:8000/api/v1"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "autoIncrement": true,
+      "android": { "buildType": "apk" },
+      "env": {
+        "APP_ENV": "preview",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-staging.cybot.example.com/api/v1"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production",
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.cybot.example.com/api/v1"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      },
+      "ios": {
+        "appleId": "YOUR_APPLE_ID",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+      }
+    }
+  }
+}
