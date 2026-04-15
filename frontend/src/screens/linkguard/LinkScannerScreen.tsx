@@ -27,10 +27,11 @@ import {
 } from 'react-native';
 
 import { deepScan, type DeepScanResult } from '@/services/linkguard';
+import { ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react-native';
 
 // ─── Colours ──────────────────────────────────────────────────────────────────
 
-const YELLOW = '#F5F000';
+const CYAN   = '#00E5FF';
 const GREEN  = '#22c55e';
 const ORANGE = '#f59e0b';
 const RED    = '#ef4444';
@@ -82,10 +83,10 @@ function verdictColor(verdict: string) {
   return RED;
 }
 
-function verdictIcon(verdict: string) {
-  if (verdict === 'safe') return '✓';
-  if (verdict === 'suspicious') return '!';
-  return '✕';
+function VerdictIcon({ verdict, size = 28 }: { verdict: string; size?: number }) {
+  if (verdict === 'safe')       return <ShieldCheck  size={size} color="#fff" strokeWidth={2.5} />;
+  if (verdict === 'suspicious') return <ShieldAlert  size={size} color="#fff" strokeWidth={2.5} />;
+  return                               <ShieldX      size={size} color="#fff" strokeWidth={2.5} />;
 }
 
 function verdictLabel(verdict: string) {
@@ -133,7 +134,7 @@ export default function LinkScannerScreen() {
     if (scanError) setScanError('');
   };
 
-  const color    = result ? verdictColor(result.verdict) : YELLOW;
+  const color    = result ? verdictColor(result.verdict) : CYAN;
   const hostname = result ? extractHostname(result.url) : '';
 
   return (
@@ -198,7 +199,7 @@ export default function LinkScannerScreen() {
             {/* Verdict badge */}
             <View style={[styles.verdictCard, { borderColor: color + '44', backgroundColor: color + '14' }]}>
               <View style={[styles.verdictCircle, { backgroundColor: color, shadowColor: color }]}>
-                <Text style={styles.verdictCircleText}>{verdictIcon(result.verdict)}</Text>
+                <VerdictIcon verdict={result.verdict} size={28} />
               </View>
               <View style={styles.verdictMeta}>
                 <Text style={[styles.verdictLabel, { color }]}>{verdictLabel(result.verdict)}</Text>
@@ -220,8 +221,8 @@ export default function LinkScannerScreen() {
                 <InfoPill
                   label="SSL"
                   value={
-                    result.domain?.ssl_valid === true  ? 'Valid ✓' :
-                    result.domain?.ssl_valid === false ? 'Invalid ✗' :
+                    result.domain?.ssl_valid === true  ? 'Valid' :
+                    result.domain?.ssl_valid === false ? 'Invalid' :
                     'Unknown'
                   }
                   valueColor={
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
   root:    { flex: 1, backgroundColor: '#000' },
   content: { padding: 20, paddingTop: 20, paddingBottom: 48 },
 
-  title:    { fontSize: 22, fontWeight: '900', color: YELLOW, letterSpacing: 3, marginBottom: 6 },
+  title:    { fontSize: 22, fontWeight: '900', color: CYAN, letterSpacing: 3, marginBottom: 6 },
   subtitle: { fontSize: 13, color: '#555', marginBottom: 24 },
 
   inputWrapper: {
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, color: RED, flex: 1 },
 
   scanBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
@@ -372,7 +373,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 8,
   },
-  verdictCircleText: { fontSize: 26, color: '#fff', fontWeight: '900' },
   verdictMeta:       { flex: 1 },
   verdictLabel:      { fontSize: 24, fontWeight: '900' },
   verdictScore:      { fontSize: 13, color: '#555', marginTop: 4 },

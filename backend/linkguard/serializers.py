@@ -90,9 +90,11 @@ class LinkScanListSerializer(serializers.ModelSerializer):
         model = LinkScan
         fields = [
             "scan_id",
+            "url",
             "url_hash",
             "final_score",
             "verdict",
+            "status",
             "flags",
             "scanned_at",
         ]

@@ -15,8 +15,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
+  Dimensions,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -31,7 +32,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { CompositeNavigationProp } from '@react-navigation/native';
-import { ShieldCheck, AlertTriangle, Lightbulb, Clock, Search } from 'lucide-react-native';
+import { ShieldCheck, AlertTriangle, Lightbulb, Clock, Search, Sun, LockKeyhole, Zap, Timer, BrainCircuit } from 'lucide-react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 import { supabase } from '@/lib/supabase';
 import { api }      from '@/services/api';
@@ -44,10 +47,10 @@ type Nav = CompositeNavigationProp<
 >;
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-const YELLOW = '#F5F000';
-const BG     = '#000';
-const CARD   = '#0f0f0f';
-const BORDER = 'rgba(255,255,255,0.06)';
+const CYAN   = '#00E5FF';
+const BG     = '#080810';
+const CARD   = '#0F0F1A';
+const BORDER = 'rgba(0,229,255,0.07)';
 
 const RISK_COLOR: Record<string, string> = {
   LOW:      '#22c55e',
@@ -138,10 +141,130 @@ interface BreachResult {
   recommendations: string[];
 }
 
+// ─── Poster Slider data ────────────────────────────────────────────────────────
+
+interface Poster {
+  id: string;
+  image: number | { uri: string };
+  navTarget?: keyof MainTabsParamList | keyof HomeStackParamList;
+}
+
+// Drop your poster PNGs into frontend/assets/posters/ and add them here.
+// Set imageReady: true only after you've placed the actual file.
+interface PosterDef {
+  id: string;
+  image?: number | { uri: string };
+  imageReady: boolean;
+  // fallback styled card fields (shown until real image is placed)
+  headline: string;
+  subtitle: string;
+  accentColor: string;
+  navTarget?: keyof MainTabsParamList | keyof HomeStackParamList;
+}
+
+const POSTERS: PosterDef[] = [
+  {
+    id: 'poster1',
+    imageReady: true,
+    image: require('../../assets/posters/poster1.jpg'),
+    headline: 'Think Before\nYou Click',
+    subtitle: 'Stay Protected from Phishing & Malware',
+    accentColor: '#CCFF00',
+    navTarget: 'ThreatsTab',
+  },
+  // Next poster: { id: 'poster2', imageReady: true, image: require('../../assets/posters/poster2.jpg'), headline: '...', subtitle: '...', accentColor: '#00E5FF', navTarget: 'ThreatsTab' },
+];
+
+// ─── Poster Slider ─────────────────────────────────────────────────────────────
+
+function PosterSlider({ navigation }: { navigation: Nav }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatRef = useRef<FlatList>(null);
+  const POSTER_WIDTH = SCREEN_WIDTH - 40;
+
+  const onScroll = (e: any) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / POSTER_WIDTH);
+    setActiveIndex(idx);
+  };
+
+  return (
+    <View style={{ marginBottom: 24 }}>
+      <FlatList
+        ref={flatRef}
+        data={POSTERS}
+        keyExtractor={(p) => p.id}
+        horizontal
+        pagingEnabled
+        snapToInterval={POSTER_WIDTH}
+        decelerationRate="fast"
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        renderItem={({ item }) => (
+          <View style={{ width: POSTER_WIDTH }}>
+            {item.imageReady && item.image ? (
+              /* ── Real poster image ── */
+              <Image
+                source={item.image}
+                style={[posterStyles.posterImage, { width: POSTER_WIDTH }]}
+                resizeMode="cover"
+              />
+            ) : (
+              /* ── Styled placeholder until real image is placed ── */
+
+              <View style={[posterStyles.placeholderCard, { width: POSTER_WIDTH }]}>
+                {/* circuit-board grid lines */}
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  {[0.2, 0.4, 0.6, 0.8].map((f) => (
+                    <View key={`v${f}`} style={[posterStyles.gridV, { left: POSTER_WIDTH * f }]} />
+                  ))}
+                  {[0.35, 0.65].map((f) => (
+                    <View key={`h${f}`} style={[posterStyles.gridH, { top: 200 * f }]} />
+                  ))}
+                </View>
+
+                {/* shield icon */}
+                <View style={[posterStyles.shieldRing, { borderColor: item.accentColor + '60' }]}>
+                  <Text style={{ fontSize: 32 }}>🔐</Text>
+                  <View style={[posterStyles.warnDot, { backgroundColor: item.accentColor }]}>
+                    <Text style={{ fontSize: 10, color: '#000', fontWeight: '900' }}>!</Text>
+                  </View>
+                </View>
+
+                {/* text */}
+                <Text style={[posterStyles.phHeadline, { color: '#fff' }]}>{item.headline}</Text>
+                <Text style={posterStyles.phSubtitle}>{item.subtitle}</Text>
+
+                {/* CTA */}
+                <View style={[posterStyles.phBtn, { borderColor: item.accentColor, shadowColor: item.accentColor }]}>
+                  <Text style={[posterStyles.phBtnText, { color: item.accentColor }]}>Learn More</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+      />
+
+      {POSTERS.length > 1 && (
+        <View style={posterStyles.dots}>
+          {POSTERS.map((_, i) => (
+            <View key={i} style={[posterStyles.dot, i === activeIndex && posterStyles.dotActive]} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function SectionTitle({ label }: { label: string }) {
-  return <Text style={styles.sectionTitle}>{label}</Text>;
+function SectionTitle({ label, Icon }: { label: string; Icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }> }) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <Icon size={11} color="#5A5A7A" strokeWidth={2.5} />
+      <Text style={styles.sectionTitle}>{label}</Text>
+    </View>
+  );
 }
 
 function StatPill({ label, value }: { label: string; value: string | number }) {
@@ -174,6 +297,28 @@ export default function HomeScreen() {
   const [newsStats,  setNewsStats]  = useState<NewsStats | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── AI Briefing — navigate to Chatbot with context ───────────────────────
+  function openAiBriefing() {
+    if (!newsStats) {
+      navigation.navigate('Chatbot', {
+        initialMessage: "Give me today's cybersecurity briefing. What are the biggest threats I should know about right now?",
+      } as any);
+      return;
+    }
+
+    const lines: string[] = [];
+    lines.push(`Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`);
+    lines.push(`Total stories tracked: ${newsStats.total}`);
+    if (newsStats.breach  > 0) lines.push(`- ${newsStats.breach} breach${newsStats.breach > 1 ? 'es' : ''}`);
+    if (newsStats.malware > 0) lines.push(`- ${newsStats.malware} malware incidents`);
+    if (newsStats.patch   > 0) lines.push(`- ${newsStats.patch} security patch${newsStats.patch > 1 ? 'es' : ''}`);
+    if (newsStats.alert   > 0) lines.push(`- ${newsStats.alert} alert${newsStats.alert > 1 ? 's' : ''}`);
+    if (newsStats.topHeadline) lines.push(`\nTop story: "${newsStats.topHeadline}"${newsStats.topSource ? ` — ${newsStats.topSource}` : ''}`);
+    lines.push('\nBased on this, give me a concise AI briefing on today\'s cybersecurity landscape. What are the key takeaways and what actions should I take to stay safe?');
+
+    navigation.navigate('Chatbot', { initialMessage: lines.join('\n') } as any);
+  }
 
   // ── Breach Checker ────────────────────────────────────────────────────────
   const [email,         setEmail]         = useState('');
@@ -287,7 +432,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={YELLOW} />
+        <ActivityIndicator size="large" color={CYAN} />
       </View>
     );
   }
@@ -313,7 +458,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); load(); }}
-            tintColor={YELLOW}
+            tintColor={CYAN}
           />
         }
         keyboardShouldPersistTaps="handled"
@@ -331,29 +476,20 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── Security Score Card ─────────────────────────────────────────── */}
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreLeft}>
-            <Text style={styles.scoreLabel}>SECURITY SCORE</Text>
-            <Text style={[styles.scoreValue, { color: scoreColor }]}>
-              {stats?.security_score ?? '—'}
-            </Text>
-            <Text style={styles.scoreOutOf}>out of 100</Text>
-          </View>
-          <View style={styles.scoreRight}>
-            <StatPill label="AUDITS"   value={stats?.total_audits   ?? 0} />
-            <StatPill label="BREACHES" value={stats?.total_breaches ?? 0} />
-            <StatPill
-              label="LAST SCAN"
-              value={stats?.last_audit_at
-                ? new Date(stats.last_audit_at).toLocaleDateString()
-                : 'Never'}
-            />
-          </View>
+        {/* ── 1. Poster Slider ────────────────────────────────────────────── */}
+        <PosterSlider navigation={navigation} />
+
+        {/* ── 2. Quick Actions ────────────────────────────────────────────── */}
+        <SectionTitle label="QUICK ACTIONS" Icon={Zap} />
+        <View style={styles.actions}>
+          <QuickAction label="Run Audit"   primary onPress={() => navigation.navigate('Privacy')}    />
+          <QuickAction label="Ask Cybot"   primary onPress={() => navigation.navigate('Chatbot')}    />
+          <QuickAction label="Cyber News"         onPress={() => navigation.navigate('ThreatsTab')} />
+          <QuickAction label="ML Analysis"        comingSoon                                         />
         </View>
 
-        {/* ── Daily Cyber Briefing ────────────────────────────────────────── */}
-        <SectionTitle label="☀️  TODAY'S BRIEFING" />
+        {/* ── 3. Daily Cyber Briefing ─────────────────────────────────────── */}
+        <SectionTitle label="TODAY'S BRIEFING" Icon={Sun} />
         <View style={styles.briefingCard}>
           <View style={styles.briefingHeader}>
             <Text style={styles.briefingDate}>
@@ -398,10 +534,20 @@ export default function HomeScreen() {
           ) : (
             <Text style={styles.briefingEmpty}>No news data available right now.</Text>
           )}
+
+          {/* AI Briefing Button */}
+          <TouchableOpacity
+            style={styles.aiBriefBtn}
+            onPress={openAiBriefing}
+            activeOpacity={0.8}
+          >
+            <BrainCircuit size={14} color="#000" strokeWidth={2} style={{ marginRight: 6 }} />
+            <Text style={styles.aiBriefBtnText}>AI Briefing</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ── Breach Checker ─────────────────────────────────────────────── */}
-        <SectionTitle label="🔐  EMAIL BREACH CHECK" />
+        {/* ── 4. Email Breach Checker ─────────────────────────────────────── */}
+        <SectionTitle label="EMAIL BREACH CHECK" Icon={LockKeyhole} />
         <View style={styles.breachCard}>
           <Text style={styles.breachSubtitle}>
             Check if your email appeared in any known data breach
@@ -438,7 +584,7 @@ export default function HomeScreen() {
 
           {comingSoon && (
             <View style={styles.comingSoonBox}>
-              <Text style={styles.comingSoonIcon}>🔜</Text>
+              <Timer size={22} color={CYAN} strokeWidth={2} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.comingSoonTitle}>Coming Soon</Text>
                 <Text style={styles.comingSoonText}>
@@ -453,7 +599,6 @@ export default function HomeScreen() {
               styles.breachResult,
               { borderColor: (RISK_COLOR[checkResult.risk_level] ?? '#555') + '40' }
             ]}>
-              {/* Risk level + count */}
               <View style={styles.breachResultTop}>
                 <View style={[
                   styles.riskBadge,
@@ -465,13 +610,12 @@ export default function HomeScreen() {
                 </View>
                 <Text style={styles.breachCount}>
                   {checkResult.breach_count === 0
-                    ? '✓ No breaches found'
+                    ? 'No breaches found'
                     : `Found in ${checkResult.breach_count} breach${checkResult.breach_count > 1 ? 'es' : ''}`
                   }
                 </Text>
               </View>
 
-              {/* Data classes exposed */}
               {checkResult.data_classes.length > 0 && (
                 <View style={styles.dataClassesWrap}>
                   <Text style={styles.dataClassesLabel}>EXPOSED DATA:</Text>
@@ -482,7 +626,6 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {/* Top recommendation */}
               {checkResult.recommendations[0] && (
                 <View style={styles.recommendationWrap}>
                   <AlertTriangle size={12} color="#f59e0b" strokeWidth={2} />
@@ -495,24 +638,15 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── Daily Security Tip ──────────────────────────────────────────── */}
-        <SectionTitle label="💡  TIP OF THE DAY" />
+        {/* ── 5. Daily Security Tip ───────────────────────────────────────── */}
+        <SectionTitle label="TIP OF THE DAY" Icon={Lightbulb} />
         <View style={styles.tipCard}>
-          <Lightbulb size={18} color={YELLOW} strokeWidth={1.8} style={{ flexShrink: 0 }} />
+          <Lightbulb size={18} color={CYAN} strokeWidth={1.8} style={{ flexShrink: 0 }} />
           <Text style={styles.tipText}>{tip}</Text>
         </View>
 
-        {/* ── Quick Actions ───────────────────────────────────────────────── */}
-        <SectionTitle label="⚡  QUICK ACTIONS" />
-        <View style={styles.actions}>
-          <QuickAction label="Run Audit"   primary onPress={() => navigation.navigate('Privacy')}    />
-          <QuickAction label="Ask Cybot"   primary onPress={() => navigation.navigate('Chatbot')}    />
-          <QuickAction label="Cyber News"         onPress={() => navigation.navigate('ThreatsTab')} />
-          <QuickAction label="ML Analysis"        comingSoon                                         />
-        </View>
-
-        {/* ── Recent Activity ─────────────────────────────────────────────── */}
-        <SectionTitle label="🕐  RECENT ACTIVITY" />
+        {/* ── 6. Recent Activity ──────────────────────────────────────────── */}
+        <SectionTitle label="RECENT ACTIVITY" Icon={Clock} />
         {recentAudits.length === 0 ? (
           <View style={styles.emptyActivity}>
             <ShieldCheck size={28} color="#333" strokeWidth={1.5} />
@@ -557,16 +691,18 @@ export default function HomeScreen() {
 function QuickAction({ label, onPress, primary, comingSoon }: { label: string; onPress?: () => void; primary?: boolean; comingSoon?: boolean }) {
   return (
     <TouchableOpacity
-      style={[styles.actionBtn, primary && styles.actionBtnPrimary, comingSoon && styles.actionBtnDisabled]}
+      style={[styles.actionBtn, primary && styles.actionBtnPrimary]}
       onPress={comingSoon ? undefined : onPress}
       activeOpacity={comingSoon ? 1 : 0.75}
     >
-      <Text style={[styles.actionBtnText, primary && styles.actionBtnTextPrimary, comingSoon && styles.actionBtnTextDisabled]}>
-        {label}
-      </Text>
-      {comingSoon && (
-        <Text style={styles.comingSoonBadge}>SOON</Text>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+        <Text style={[styles.actionBtnText, primary && styles.actionBtnTextPrimary]}>
+          {label}
+        </Text>
+        {comingSoon && (
+          <Text style={styles.comingSoonBadge}>SOON</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -579,16 +715,17 @@ const styles = StyleSheet.create({
 
   // Header
   headerRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  appName:         { fontSize: 28, fontWeight: '900', color: YELLOW, letterSpacing: 4 },
-  greeting:        { fontSize: 12, color: '#555', fontWeight: '600', marginTop: 3 },
-  liveBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: YELLOW + '18', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: YELLOW + '35', alignSelf: 'flex-start', marginTop: 4 },
-  liveDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: YELLOW },
-  liveBadgeText:   { color: YELLOW, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  appName:         { fontSize: 15, fontWeight: '900', color: CYAN, letterSpacing: 3 },
+  greeting:        { fontSize: 12, color: '#5A5A7A', fontWeight: '600', marginTop: 3 },
+  liveBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: CYAN + '18', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: CYAN + '35', alignSelf: 'flex-start', marginTop: 4 },
+  liveDot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: CYAN },
+  liveBadgeText:   { color: CYAN, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
 
   // Section title
-  sectionTitle: { color: '#444', fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 10, marginTop: 4 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, marginTop: 4 },
+  sectionTitle: { color: '#5A5A7A', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
 
-  // Score Card
+  // Score Card (kept for reference, replaced by PosterSlider)
   scoreCard:  { backgroundColor: CARD, borderRadius: 16, padding: 22, marginBottom: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: BORDER },
   scoreLeft:  { flex: 1 },
   scoreLabel: { color: '#555', fontSize: 10, fontWeight: '800', letterSpacing: 2, marginBottom: 4 },
@@ -603,17 +740,30 @@ const styles = StyleSheet.create({
   briefingCard:     { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: BORDER },
   briefingHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   briefingDate:     { color: '#fff', fontSize: 13, fontWeight: '700' },
-  briefingAllLink:  { color: YELLOW, fontSize: 12, fontWeight: '700' },
+  briefingAllLink:  { color: CYAN, fontSize: 12, fontWeight: '700' },
   briefingBadges:   { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
   newsBadge:        { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, alignItems: 'center', minWidth: 56 },
   newsBadgeCount:   { fontSize: 18, fontWeight: '900' },
   newsBadgeLabel:   { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  briefingTopStory: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10, marginBottom: 10, borderLeftWidth: 2, borderLeftColor: YELLOW },
-  briefingTopLabel: { color: YELLOW, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 4 },
+  briefingTopStory: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10, marginBottom: 10, borderLeftWidth: 2, borderLeftColor: CYAN },
+  briefingTopLabel: { color: CYAN, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 4 },
   briefingHeadline: { color: '#fff', fontSize: 13, fontWeight: '700', lineHeight: 18 },
   briefingSource:   { color: '#444', fontSize: 11, marginTop: 4 },
   briefingSummary:  { color: '#555', fontSize: 11, lineHeight: 16 },
   briefingEmpty:    { color: '#444', fontSize: 13 },
+
+  // AI Briefing
+  aiBriefBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: CYAN,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  aiBriefBtnText: { color: '#000', fontSize: 13, fontWeight: '800' },
 
   // Breach Checker
   breachCard:      { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: BORDER },
@@ -621,26 +771,25 @@ const styles = StyleSheet.create({
   breachInputRow:  { flexDirection: 'row', gap: 8, marginBottom: 4 },
   breachInput:     {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#0F0F1A',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: '#fff',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0,229,255,0.1)',
   },
   breachBtn:       {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 10,
     width: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   breachError:     { color: '#ef4444', fontSize: 12, marginTop: 6 },
-  comingSoonBox:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, backgroundColor: 'rgba(245,240,0,0.06)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(245,240,0,0.15)' },
-  comingSoonIcon:  { fontSize: 22 },
-  comingSoonTitle: { color: YELLOW, fontSize: 13, fontWeight: '800', marginBottom: 2 },
+  comingSoonBox:   { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, backgroundColor: 'rgba(0,229,255,0.05)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: 'rgba(0,229,255,0.15)' },
+  comingSoonTitle: { color: CYAN, fontSize: 13, fontWeight: '800', marginBottom: 2 },
   comingSoonText:  { color: '#666', fontSize: 12, lineHeight: 17 },
   breachResult:    { marginTop: 12, borderWidth: 1, borderRadius: 10, padding: 12, gap: 8 },
   breachResultTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -654,18 +803,16 @@ const styles = StyleSheet.create({
   recommendationText: { color: '#666', fontSize: 11, lineHeight: 16, flex: 1 },
 
   // Daily Tip
-  tipCard: { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 24, flexDirection: 'row', gap: 12, alignItems: 'flex-start', borderWidth: 1, borderColor: BORDER, borderLeftWidth: 3, borderLeftColor: YELLOW },
+  tipCard: { backgroundColor: CARD, borderRadius: 14, padding: 16, marginBottom: 24, flexDirection: 'row', gap: 12, alignItems: 'flex-start', borderWidth: 1, borderColor: BORDER, borderLeftWidth: 3, borderLeftColor: CYAN },
   tipText: { color: '#888', fontSize: 13, lineHeight: 20, flex: 1 },
 
   // Quick Actions
   actions:              { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  actionBtn:            { flex: 1, minWidth: '45%', backgroundColor: '#111', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  actionBtnPrimary:     { backgroundColor: YELLOW, borderColor: YELLOW },
-  actionBtnDisabled:    { opacity: 0.45, borderStyle: 'dashed' },
-  actionBtnText:        { color: '#555', fontSize: 13, fontWeight: '700' },
+  actionBtn:            { flex: 1, minWidth: '45%', height: 52, backgroundColor: CYAN, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: CYAN },
+  actionBtnPrimary:     { backgroundColor: CYAN, borderColor: CYAN },
+  actionBtnText:        { color: '#000', fontSize: 13, fontWeight: '800' },
   actionBtnTextPrimary: { color: '#000' },
-  actionBtnTextDisabled:{ color: '#444' },
-  comingSoonBadge:      { fontSize: 8, fontWeight: '900', color: YELLOW, letterSpacing: 1.2, marginTop: 3, backgroundColor: 'rgba(245,240,0,0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  comingSoonBadge:      { fontSize: 7, fontWeight: '900', color: '#000', letterSpacing: 1, backgroundColor: 'rgba(0,0,0,0.18)', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 5, marginTop: -2 },
 
   // Recent Activity
   emptyActivity:     { alignItems: 'center', gap: 8, paddingVertical: 20, backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, marginBottom: 24 },
@@ -678,4 +825,108 @@ const styles = StyleSheet.create({
   activityMeta:      { color: '#555', fontSize: 11, marginTop: 2 },
   activityBadge:     { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   activityBadgeText: { fontSize: 10, fontWeight: '800' },
+});
+
+// ─── Poster Slide Styles ───────────────────────────────────────────────────────
+
+const posterStyles = StyleSheet.create({
+  // Real image
+  posterImage: {
+    height: 200,
+    borderRadius: 18,
+  },
+
+  // Styled placeholder card
+  placeholderCard: {
+    height: 200,
+    borderRadius: 18,
+    backgroundColor: '#03112A',
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    overflow: 'hidden',
+  },
+  gridV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(0,229,255,0.05)',
+  },
+  gridH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(0,229,255,0.05)',
+  },
+  shieldRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,229,255,0.06)',
+    position: 'relative',
+  },
+  warnDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phHeadline: {
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+    lineHeight: 26,
+    letterSpacing: -0.5,
+  },
+  phSubtitle: {
+    fontSize: 12,
+    color: '#7A9BBF',
+    textAlign: 'center',
+  },
+  phBtn: {
+    borderRadius: 100,
+    borderWidth: 1.5,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    marginTop: 4,
+  },
+  phBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+
+  // Pagination dots
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#333',
+  },
+  dotActive: {
+    backgroundColor: CYAN,
+    width: 18,
+  },
 });

@@ -21,17 +21,20 @@ import { useNavigation }     from '@react-navigation/native';
 import { ArrowLeft, ShieldCheck, ShieldAlert, ShieldX, ExternalLink } from 'lucide-react-native';
 import { api } from '@/services/api';
 
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ScanItem {
   scan_id:     string;
-  url:         string;
-  status:      string;   // Safe | Suspicious | Unsafe
-  verdict:     string;   // safe | suspicious | dangerous
-  final_score: number;
-  scanned_at:  string;
+  url?:        string;
+  url_hash?:   string;
+  status?:     string;   // Safe | Suspicious | Unsafe
+  verdict?:    string;   // safe | suspicious | dangerous
+  final_score?: number;
+  scanned_at?:  string;
 }
 
 interface HistoryResponse {
@@ -45,7 +48,7 @@ interface HistoryResponse {
 
 function verdictColor(verdict: string) {
   if (verdict === 'safe')      return '#4CAF50';
-  if (verdict === 'suspicious') return YELLOW;
+  if (verdict === 'suspicious') return CYAN;
   return '#FF5252';
 }
 
@@ -62,7 +65,8 @@ function formatDate(iso: string) {
     + '  ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-function truncateUrl(url: string, max = 40) {
+function truncateUrl(url: string | undefined | null, max = 40) {
+  if (!url) return '(no url)';
   try {
     const u = new URL(url);
     const display = u.hostname + u.pathname;
@@ -90,12 +94,20 @@ export default function ScanHistoryScreen() {
     try {
       const res = await api.get<HistoryResponse>(`/linkguard/history/?page=${pageNum}`);
       const data = res.data;
-      setTotal(data.count);
-      setNumPages(data.num_pages);
-      setPage(data.current_page);
-      setItems(prev => replace ? data.results : [...prev, ...data.results]);
+
+      // Backend may return a plain array or a paginated object — handle both.
+      const results: ScanItem[] = Array.isArray(data)
+        ? (data as unknown as ScanItem[])
+        : Array.isArray(data?.results)
+          ? data.results
+          : [];
+
+      setTotal(typeof data?.count === 'number' ? data.count : results.length);
+      setNumPages(typeof data?.num_pages === 'number' ? data.num_pages : 1);
+      setPage(typeof data?.current_page === 'number' ? data.current_page : pageNum);
+      setItems(prev => replace ? results : [...prev, ...results]);
     } catch (err: any) {
-      // silently swallow on pagination errors; initial errors will show empty state
+      // silently swallow; empty state is shown when items stays []
     }
   }, []);
 
@@ -120,24 +132,26 @@ export default function ScanHistoryScreen() {
   // ── Render item ─────────────────────────────────────────────────────────────
 
   function renderItem({ item }: { item: ScanItem }) {
-    const color = verdictColor(item.verdict);
+    const verdict = item.verdict ?? (item.status?.toLowerCase() ?? 'safe');
+    const color   = verdictColor(verdict);
+    const status  = item.status ?? item.verdict ?? 'unknown';
     return (
       <View style={styles.card}>
         <View style={styles.cardTop}>
-          <VerdictIcon verdict={item.verdict} size={20} />
+          <VerdictIcon verdict={verdict} size={20} />
           <Text style={styles.cardUrl} numberOfLines={1}>
-            {truncateUrl(item.url)}
+            {truncateUrl(item.url ?? item.url_hash)}
           </Text>
           <View style={[styles.scorePill, { backgroundColor: color + '22' }]}>
-            <Text style={[styles.scoreText, { color }]}>{item.final_score}</Text>
+            <Text style={[styles.scoreText, { color }]}>{item.final_score ?? '—'}</Text>
           </View>
         </View>
 
         <View style={styles.cardBottom}>
           <View style={[styles.statusBadge, { borderColor: color }]}>
-            <Text style={[styles.statusText, { color }]}>{item.status.toUpperCase()}</Text>
+            <Text style={[styles.statusText, { color }]}>{status.toUpperCase()}</Text>
           </View>
-          <Text style={styles.dateText}>{formatDate(item.scanned_at)}</Text>
+          <Text style={styles.dateText}>{item.scanned_at ? formatDate(item.scanned_at) : '—'}</Text>
         </View>
       </View>
     );
@@ -161,7 +175,7 @@ export default function ScanHistoryScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -181,7 +195,7 @@ export default function ScanHistoryScreen() {
 
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={YELLOW} />
+          <ActivityIndicator size="large" color={CYAN} />
         </View>
       ) : (
         <FlatList
@@ -197,8 +211,8 @@ export default function ScanHistoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={YELLOW}
-              colors={[YELLOW]}
+              tintColor={CYAN}
+              colors={[CYAN]}
             />
           }
           onEndReached={onEndReached}
@@ -206,7 +220,7 @@ export default function ScanHistoryScreen() {
           ListEmptyComponent={<EmptyState />}
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator color={YELLOW} style={styles.footerSpinner} />
+              <ActivityIndicator color={CYAN} style={styles.footerSpinner} />
             ) : null
           }
         />
@@ -218,7 +232,7 @@ export default function ScanHistoryScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#000' },
+  root:   { flex: 1, backgroundColor: BG },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   header: {
@@ -228,22 +242,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 56,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#000',
+    borderBottomColor: 'rgba(0,229,255,0.1)',
+    backgroundColor: BG,
   },
   headerBtn:   { padding: 6, minWidth: 50 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
-  headerCount: { color: '#555', fontSize: 12, fontWeight: '600', textAlign: 'right' },
+  headerTitle: { color: CYAN, fontSize: 15, fontWeight: '900', letterSpacing: 3 },
+  headerCount: { color: '#5A5A7A', fontSize: 12, fontWeight: '600', textAlign: 'right' },
 
   list:      { paddingHorizontal: 16, paddingTop: 16, gap: 10 },
   listEmpty: { flex: 1, justifyContent: 'center' },
 
   card: {
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(0,229,255,0.07)',
     gap: 10,
   },
   cardTop: {

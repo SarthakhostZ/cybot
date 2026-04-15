@@ -19,7 +19,11 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { api } from '@/services/api';
+import { Menu } from 'lucide-react-native';
+import type { MainTabsParamList } from '@/navigation/AppNavigator';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -36,20 +40,30 @@ interface ChatSession {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = Math.min(SCREEN_WIDTH * 0.78, 300);
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
-const WELCOME: Message = {
-  id: '__welcome__',
-  role: 'assistant',
-  content:
-    "Hi, I'm Cybot — your cybersecurity AI assistant. Ask me anything about threats, privacy, or ethical tech.",
-};
+function makeWelcome(name?: string | null): Message {
+  const greeting = name
+    ? `Hello ${name}!! I'm your cybersecurity AI assistant. Ask me anything about threats, privacy, or ethical tech.`
+    : "Hi, I'm Cybot — your cybersecurity AI assistant. Ask me anything about threats, privacy, or ethical tech.";
+  return { id: '__welcome__', role: 'assistant', content: greeting };
+}
 
 export default function ChatbotScreen() {
+  const route = useRoute<RouteProp<MainTabsParamList, 'Chatbot'>>();
+  const initialMessage = (route.params as any)?.initialMessage as string | undefined;
+  const { user } = useAuthContext();
+
+  const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0] ?? null;
+  const WELCOME = makeWelcome(firstName);
+
   const [messages,       setMessages]       = useState<Message[]>([WELCOME]);
   const [input,          setInput]          = useState('');
   const [sending,        setSending]        = useState(false);
   const [loadingSession, setLoadingSession] = useState(false);
+  const autoSentRef = useRef(false);
 
   const [sessions,       setSessions]       = useState<ChatSession[]>([]);
   const [sessionsState,  setSessionsState]  = useState<'idle' | 'loading' | 'error'>('idle');
@@ -71,6 +85,40 @@ export default function ChatbotScreen() {
   }, []);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // Auto-send initialMessage passed from HomeScreen AI Briefing
+  useEffect(() => {
+    if (!initialMessage || autoSentRef.current) return;
+    autoSentRef.current = true;
+
+    const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', content: initialMessage };
+    setMessages((prev) => [...prev, userMsg]);
+    setSending(true);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+
+    api.post<{ reply: string; session_id: string | null }>(
+      '/threats/chat/',
+      { message: initialMessage, session_id: null },
+    ).then(({ data }) => {
+      if (data.session_id) {
+        setActiveId(data.session_id);
+        loadSessions();
+      }
+      setMessages((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, role: 'assistant', content: data.reply ?? 'No response received.' },
+      ]);
+    }).catch((err: any) => {
+      const status = err?.response?.status;
+      let content = err?.response?.data?.error ?? 'Sorry, something went wrong. Please try again.';
+      if (status === 429) content = 'You are sending messages too fast. Please wait a moment.';
+      setMessages((prev) => [...prev, { id: `e-${Date.now()}`, role: 'assistant', content }]);
+    }).finally(() => {
+      setSending(false);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
 
   const openSidebar = useCallback(() => {
     setSidebarVisible(true);
@@ -218,7 +266,7 @@ export default function ChatbotScreen() {
     if (sessionsState === 'loading' && sessions.length === 0) {
       return (
         <View style={styles.sidebarMsg}>
-          <ActivityIndicator color={YELLOW} />
+          <ActivityIndicator color={CYAN} />
         </View>
       );
     }
@@ -274,7 +322,7 @@ export default function ChatbotScreen() {
             style={styles.menuBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.menuIcon}>☰</Text>
+            <Menu size={22} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>CYBOT AI</Text>
           <View style={{ width: 36 }} />
@@ -282,7 +330,7 @@ export default function ChatbotScreen() {
 
         {loadingSession ? (
           <View style={styles.centred}>
-            <ActivityIndicator color={YELLOW} size="large" />
+            <ActivityIndicator color={CYAN} size="large" />
           </View>
         ) : (
           <FlatList
@@ -298,7 +346,7 @@ export default function ChatbotScreen() {
 
         {sending && (
           <View style={styles.typingRow}>
-            <ActivityIndicator color={YELLOW} size="small" />
+            <ActivityIndicator color={CYAN} size="small" />
             <Text style={styles.typingText}>Cybot is thinking…</Text>
           </View>
         )}
@@ -333,7 +381,7 @@ export default function ChatbotScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1, backgroundColor: BG },
 
   // Sidebar
   backdrop: {
@@ -347,9 +395,9 @@ const styles = StyleSheet.create({
     left:              0,
     bottom:            0,
     width:             SIDEBAR_WIDTH,
-    backgroundColor:  '#0d0d0d',
+    backgroundColor:  '#0C0C18',
     borderRightWidth:  1,
-    borderRightColor: 'rgba(255,255,255,0.07)',
+    borderRightColor: 'rgba(0,229,255,0.1)',
     zIndex:            20,
     paddingTop:        60,
     paddingHorizontal: 16,
@@ -362,7 +410,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   newChatBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius:    10,
     paddingVertical: 12,
     alignItems:      'center',
@@ -380,19 +428,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius:      10,
     marginBottom:       6,
-    backgroundColor:   '#111',
+    backgroundColor:   CARD,
   },
   sessionItemActive: {
     backgroundColor: '#1a1a1a',
     borderWidth:     1,
-    borderColor:     YELLOW,
+    borderColor:     CYAN,
   },
   sessionTitle: {
     color:      '#888',
     fontSize:   14,
     fontWeight: '500',
   },
-  sessionTitleActive: { color: YELLOW, fontWeight: '700' },
+  sessionTitleActive: { color: CYAN, fontWeight: '700' },
   sessionDate: {
     color:     '#444',
     fontSize:  11,
@@ -413,12 +461,12 @@ const styles = StyleSheet.create({
   retryBtn: {
     paddingHorizontal: 20,
     paddingVertical:    8,
-    backgroundColor:  '#1a1a1a',
+    backgroundColor:  '#12121E',
     borderRadius:       8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
-  retryBtnText: { color: YELLOW, fontSize: 14, fontWeight: '600' },
+  retryBtnText: { color: CYAN, fontSize: 14, fontWeight: '600' },
 
   // Chat area
   chatArea: { flex: 1 },
@@ -430,11 +478,10 @@ const styles = StyleSheet.create({
     paddingTop:        60,
     paddingBottom:     14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.07)',
+    borderBottomColor: 'rgba(0,229,255,0.1)',
   },
   menuBtn:     { width: 36, alignItems: 'flex-start' },
-  menuIcon:    { fontSize: 22, color: '#fff' },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: YELLOW, letterSpacing: 3 },
+  headerTitle: { fontSize: 15, fontWeight: '900', color: CYAN, letterSpacing: 3 },
 
   centred: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list:    { paddingHorizontal: 16, paddingVertical: 12 },
@@ -445,12 +492,12 @@ const styles = StyleSheet.create({
     padding:       13,
     marginBottom:  10,
   },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: YELLOW },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: CYAN },
   botBubble:  {
     alignSelf:       'flex-start',
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth:      1,
-    borderColor:     'rgba(255,255,255,0.07)',
+    borderColor:     'rgba(0,229,255,0.1)',
   },
   userText: { color: '#000', fontSize: 15, lineHeight: 22, fontWeight: '600' },
   botText:  { color: '#fff', fontSize: 15, lineHeight: 22 },
@@ -467,15 +514,15 @@ const styles = StyleSheet.create({
     flexDirection:  'row',
     padding:         12,
     borderTopWidth:   1,
-    borderTopColor:  'rgba(255,255,255,0.07)',
+    borderTopColor:  'rgba(0,229,255,0.1)',
     alignItems:      'flex-end',
     gap:              8,
   },
   input: {
     flex:              1,
-    backgroundColor:  '#111',
+    backgroundColor:  CARD,
     borderWidth:        1,
-    borderColor:       'rgba(255,255,255,0.1)',
+    borderColor:       'rgba(0,229,255,0.12)',
     borderRadius:       20,
     paddingHorizontal:  16,
     paddingVertical:    10,
@@ -484,7 +531,7 @@ const styles = StyleSheet.create({
     maxHeight:         100,
   },
   sendBtn: {
-    backgroundColor:  YELLOW,
+    backgroundColor:  CYAN,
     borderRadius:      22,
     width:             44,
     height:            44,

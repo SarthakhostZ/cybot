@@ -22,12 +22,15 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '@/navigation/AppNavigator';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { Check, X } from 'lucide-react-native';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 };
 
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 // ─── Password requirement rules ───────────────────────────────────────────────
 
@@ -134,9 +137,10 @@ export default function SignUpScreen({ navigation }: Props) {
               const met = rule.test(password);
               return (
                 <View key={rule.key} style={styles.ruleRow}>
-                  <Text style={met ? styles.ruleIconOk : styles.ruleIconFail}>
-                    {met ? '✓' : '✗'}
-                  </Text>
+                  {met
+                    ? <Check size={13} color="#4CAF50" strokeWidth={3} />
+                    : <X     size={13} color="#FF5252" strokeWidth={3} />
+                  }
                   <Text style={met ? styles.ruleLabelOk : styles.ruleLabelFail}>
                     {rule.label}
                   </Text>
@@ -164,7 +168,7 @@ export default function SignUpScreen({ navigation }: Props) {
         )}
 
         {loading ? (
-          <ActivityIndicator color={YELLOW} style={styles.spinner} />
+          <ActivityIndicator color={CYAN} style={styles.spinner} />
         ) : (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleSignUp} activeOpacity={0.85}>
             <Text style={styles.primaryBtnText}>Create Account</Text>
@@ -185,7 +189,7 @@ export default function SignUpScreen({ navigation }: Props) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: BG },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -193,7 +197,7 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '900',
     color: '#fff',
     textAlign: 'center',
@@ -201,15 +205,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: 12,
+    color: '#5A5A7A',
     textAlign: 'center',
     marginBottom: 40,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,229,255,0.15)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 15,
@@ -218,21 +224,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   rulesBox: {
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginTop: -4,
     marginBottom: 12,
     gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.08)',
   },
   ruleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  ruleIconOk:    { color: '#4CAF50', fontSize: 13, fontWeight: '700', width: 16 },
-  ruleIconFail:  { color: '#FF5252', fontSize: 13, fontWeight: '700', width: 16 },
   ruleLabelOk:   { color: '#4CAF50', fontSize: 13 },
   ruleLabelFail: { color: '#888',    fontSize: 13 },
   mismatch: {
@@ -244,18 +250,23 @@ const styles = StyleSheet.create({
   },
   spinner: { marginVertical: 18 },
   primaryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 24,
     marginTop: 4,
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   primaryBtnText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   link: {
-    color: '#555',
+    color: '#5A5A7A',
     textAlign: 'center',
     fontSize: 14,
   },
-  linkAccent: { color: YELLOW, fontWeight: '700' },
+  linkAccent: { color: CYAN, fontWeight: '700' },
 });

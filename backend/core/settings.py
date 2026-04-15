@@ -13,7 +13,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─── Core ────────────────────────────────────────────────────────────────────
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="insecure-dev-key-change-me")
 DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+# In development (DEBUG=True) allow any host so the dev server is reachable
+# from physical devices / emulators on any LAN IP without manual updates.
+# In production, set DJANGO_ALLOWED_HOSTS to your actual domain(s).
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
 
 # ─── Apps ────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -127,10 +133,14 @@ REST_FRAMEWORK = {
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8081",   # Expo dev server
-    "http://localhost:19006",  # Expo web
-]
+if DEBUG:
+    # Allow all origins in dev — Expo runs on whatever LAN IP the machine has
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = config(
+        "DJANGO_CORS_ORIGINS",
+        default="http://localhost:8081,http://localhost:19006",
+    ).split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # ─── Supabase ─────────────────────────────────────────────────────────────────

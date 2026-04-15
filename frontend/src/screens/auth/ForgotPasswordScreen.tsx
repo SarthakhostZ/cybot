@@ -34,7 +34,9 @@ type Step = 1 | 2 | 3;
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 export default function ForgotPasswordScreen({ navigation }: Props) {
   const { resetPassword, verifyEmailOTP, updatePassword } = useAuthContext();
@@ -169,7 +171,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableOpacity style={styles.backArrow} onPress={goBack}>
-        <ChevronLeft size={18} color={YELLOW} strokeWidth={2.5} />
+        <ChevronLeft size={18} color={CYAN} strokeWidth={2.5} />
         <Text style={styles.backArrowText}>Back</Text>
       </TouchableOpacity>
 
@@ -201,7 +203,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
           />
 
           {loading ? (
-            <ActivityIndicator color={YELLOW} style={styles.spinner} />
+            <ActivityIndicator color={CYAN} style={styles.spinner} />
           ) : (
             <TouchableOpacity style={styles.primaryBtn} onPress={handleSendOTP} activeOpacity={0.85}>
               <Text style={styles.primaryBtnText}>Send Code</Text>
@@ -237,7 +239,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
           </View>
 
           {loading ? (
-            <ActivityIndicator color={YELLOW} style={styles.spinner} />
+            <ActivityIndicator color={CYAN} style={styles.spinner} />
           ) : (
             <TouchableOpacity
               style={[styles.primaryBtn, digits.some((d) => !d) && styles.btnDisabled]}
@@ -290,7 +292,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
           />
 
           {loading ? (
-            <ActivityIndicator color={YELLOW} style={styles.spinner} />
+            <ActivityIndicator color={CYAN} style={styles.spinner} />
           ) : (
             <TouchableOpacity style={styles.primaryBtn} onPress={handleResetPassword} activeOpacity={0.85}>
               <Text style={styles.primaryBtnText}>Reset Password</Text>
@@ -305,12 +307,12 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BG,
     paddingHorizontal: 24,
     paddingTop: 60,
   },
   backArrow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 20 },
-  backArrowText: { color: YELLOW, fontSize: 15, fontWeight: '600' },
+  backArrowText: { color: CYAN, fontSize: 15, fontWeight: '600' },
 
   stepRow: {
     flexDirection: 'row',
@@ -321,9 +323,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#222',
+    backgroundColor: '#1A1A2E',
   },
-  stepDotActive: { backgroundColor: YELLOW },
+  stepDotActive: { backgroundColor: CYAN },
 
   title: {
     fontSize: 30,
@@ -333,17 +335,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: '#777',
+    color: '#5A5A7A',
     fontSize: 15,
     lineHeight: 24,
     marginBottom: 28,
   },
-  emailHighlight: { color: YELLOW, fontWeight: '700' },
+  emailHighlight: { color: CYAN, fontWeight: '700' },
 
   input: {
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,229,255,0.15)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 15,
@@ -361,9 +363,9 @@ const styles = StyleSheet.create({
   digitBox: {
     width: 50,
     height: 60,
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(0,229,255,0.15)',
     borderRadius: 12,
     color: '#fff',
     fontSize: 26,
@@ -371,21 +373,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   digitBoxFilled: {
-    borderColor: YELLOW,
+    borderColor: CYAN,
     borderWidth: 2,
   },
 
   spinner: { marginVertical: 16 },
   primaryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  btnDisabled: { backgroundColor: '#1a1a1a' },
+  btnDisabled: { backgroundColor: '#12121E', borderWidth: 1, borderColor: 'rgba(0,229,255,0.1)' },
   primaryBtnText: { color: '#000', fontWeight: '900', fontSize: 16 },
 
   resendBtn: { alignItems: 'center', marginTop: 24 },
-  resendText: { color: YELLOW, fontSize: 14, fontWeight: '600' },
-  resendDisabled: { color: '#444' },
+  resendText: { color: CYAN, fontSize: 14, fontWeight: '600' },
+  resendDisabled: { color: '#3A3A5A' },
 });

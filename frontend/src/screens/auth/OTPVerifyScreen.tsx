@@ -31,7 +31,9 @@ type Props = {
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN = 60;
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 export default function OTPVerifyScreen({ navigation, route }: Props) {
   const { email } = route.params;
@@ -103,7 +105,7 @@ export default function OTPVerifyScreen({ navigation, route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableOpacity style={styles.backArrow} onPress={() => navigation.goBack()}>
-        <ChevronLeft size={18} color={YELLOW} strokeWidth={2.5} />
+        <ChevronLeft size={18} color={CYAN} strokeWidth={2.5} />
         <Text style={styles.backArrowText}>Back</Text>
       </TouchableOpacity>
 
@@ -132,7 +134,7 @@ export default function OTPVerifyScreen({ navigation, route }: Props) {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={YELLOW} style={styles.spinner} />
+        <ActivityIndicator color={CYAN} style={styles.spinner} />
       ) : (
         <TouchableOpacity
           style={[styles.verifyBtn, digits.some((d) => !d) && styles.verifyBtnDisabled]}
@@ -160,12 +162,12 @@ export default function OTPVerifyScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BG,
     paddingHorizontal: 24,
     paddingTop: 60,
   },
   backArrow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 40 },
-  backArrowText: { color: YELLOW, fontSize: 15, fontWeight: '600' },
+  backArrowText: { color: CYAN, fontSize: 15, fontWeight: '600' },
 
   title: {
     fontSize: 30,
@@ -175,15 +177,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    color: '#777',
+    color: '#5A5A7A',
     fontSize: 15,
     lineHeight: 24,
     marginBottom: 4,
     textAlign: 'center',
   },
-  emailText: { color: YELLOW, fontWeight: '700' },
+  emailText: { color: CYAN, fontWeight: '700' },
   hint: {
-    color: '#444',
+    color: '#3A3A5A',
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 40,
@@ -198,9 +200,9 @@ const styles = StyleSheet.create({
   digitBox: {
     width: 50,
     height: 60,
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(0,229,255,0.15)',
     borderRadius: 12,
     color: '#fff',
     fontSize: 26,
@@ -208,21 +210,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   digitBoxFilled: {
-    borderColor: YELLOW,
+    borderColor: CYAN,
     borderWidth: 2,
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
 
   spinner: { marginVertical: 16 },
   verifyBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  verifyBtnDisabled: { backgroundColor: '#1a1a1a' },
+  verifyBtnDisabled: { backgroundColor: '#12121E', borderWidth: 1, borderColor: 'rgba(0,229,255,0.1)' },
   verifyBtnText: { color: '#000', fontWeight: '900', fontSize: 16 },
 
   resendBtn: { alignItems: 'center', marginTop: 28 },
-  resendText: { color: YELLOW, fontSize: 14, fontWeight: '600' },
-  resendDisabled: { color: '#444' },
+  resendText: { color: CYAN, fontSize: 14, fontWeight: '600' },
+  resendDisabled: { color: '#3A3A5A' },
 });

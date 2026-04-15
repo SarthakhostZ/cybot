@@ -19,7 +19,9 @@ import {
 import { AlertTriangle } from 'lucide-react-native';
 import { useMLInsight, FeatureInput } from '@/hooks/useMLInsight';
 
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 const THREAT_COLOR: Record<string, string> = {
   benign:            '#22c55e',
@@ -108,7 +110,7 @@ export default function MLInsightScreen() {
         <Switch
           value={autoAlert}
           onValueChange={setAutoAlert}
-          trackColor={{ false: '#222', true: YELLOW }}
+          trackColor={{ false: '#222', true: CYAN }}
           thumbColor={autoAlert ? '#000' : '#555'}
         />
       </View>
@@ -189,7 +191,7 @@ export default function MLInsightScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: BG },
   content:   { padding: 20, paddingTop: 24, paddingBottom: 40 },
 
   header:   { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 6, letterSpacing: -0.5 },
@@ -200,9 +202,9 @@ const styles = StyleSheet.create({
   inputRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input:      {
     flex: 1,
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0,229,255,0.1)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -215,26 +217,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(0,229,255,0.07)',
   },
   toggleLabel: { color: '#fff', fontSize: 14, fontWeight: '700' },
   toggleSub:   { color: '#555', fontSize: 11, marginTop: 2 },
 
   btnRow:      { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  btn:         { flex: 1, backgroundColor: YELLOW, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btn:         { flex: 1, backgroundColor: CYAN, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   btnDisabled: { opacity: 0.6 },
   btnText:     { color: '#000', fontWeight: '900', fontSize: 15 },
-  resetBtn:    { borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 22, alignItems: 'center', backgroundColor: '#111' },
+  resetBtn:    { borderWidth: 1, borderColor: 'rgba(0,229,255,0.1)', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 22, alignItems: 'center', backgroundColor: '#111' },
   resetBtnText:{ color: '#555', fontSize: 14, fontWeight: '700' },
 
   errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 12 },
 
-  resultCard:    { backgroundColor: '#111', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  resultCard:    { backgroundColor: CARD, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   verdictBanner: { borderRadius: 10, padding: 16, alignItems: 'center', marginBottom: 16 },
   verdictClass:  { fontSize: 20, fontWeight: '900', letterSpacing: 1.5 },
   verdictConf:   { fontSize: 13, fontWeight: '700', marginTop: 4 },
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
   probTitle: { color: '#444', fontSize: 10, fontWeight: '900', letterSpacing: 2, marginBottom: 12 },
   probRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   probLabel: { color: '#666', fontSize: 12, width: 120 },
-  barTrack:  { flex: 1, height: 6, backgroundColor: '#222', borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
+  barTrack:  { flex: 1, height: 6, backgroundColor: '#1A1A2E', borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
   barFill:   { height: '100%', borderRadius: 3 },
   probPct:   { color: '#555', fontSize: 11, fontWeight: '700', width: 36, textAlign: 'right' },
 });

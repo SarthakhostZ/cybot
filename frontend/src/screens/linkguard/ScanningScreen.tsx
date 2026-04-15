@@ -14,13 +14,14 @@ import {
   View,
 } from 'react-native';
 import { ScanStatus } from '@/hooks/useLinkGuard';
+import { ScanLine } from 'lucide-react-native';
 
 interface Props {
   url: string;
   status: ScanStatus;
 }
 
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
 
 export default function ScanningScreen({ url, status }: Props) {
   const pulse  = useRef(new Animated.Value(1)).current;
@@ -61,7 +62,7 @@ export default function ScanningScreen({ url, status }: Props) {
           <Animated.View style={[styles.outerRing, { transform: [{ scale: pulse }] }]} />
           <Animated.View style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]} />
           <View style={styles.shieldCenter}>
-            <Text style={styles.shieldIcon}>🔍</Text>
+            <ScanLine size={30} color={CYAN} strokeWidth={2} />
           </View>
         </View>
 
@@ -98,17 +99,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 100, height: 100, borderRadius: 50,
     borderWidth: 3,
-    borderColor: YELLOW,
+    borderColor: CYAN,
     borderTopColor: 'transparent',
   },
   shieldCenter: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#111',
+    backgroundColor: '#0F0F1A',
     borderWidth: 2,
-    borderColor: YELLOW,
+    borderColor: CYAN,
     alignItems: 'center', justifyContent: 'center',
   },
-  shieldIcon: { fontSize: 30 },
 
   title:    { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 8, letterSpacing: 2 },
   subtitle: { fontSize: 15, color: '#555', marginBottom: 32 },
@@ -123,10 +123,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.07)',
   },
   urlLabel: { fontSize: 10, color: '#555', marginBottom: 6, fontWeight: '800', letterSpacing: 1.5 },
-  urlText:  { fontSize: 13, color: YELLOW, fontFamily: 'monospace' },
+  urlText:  { fontSize: 13, color: CYAN, fontFamily: 'monospace' },
 
   progressRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   dot:         { width: 8, height: 8, borderRadius: 4, backgroundColor: '#222' },
-  dotActive:   { backgroundColor: YELLOW },
+  dotActive:   { backgroundColor: CYAN },
   progressLabel: { fontSize: 13, color: '#555' },
 });

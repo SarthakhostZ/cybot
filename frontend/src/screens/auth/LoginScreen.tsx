@@ -26,7 +26,9 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 };
 
-const YELLOW = '#F5F000';
+const CYAN = '#00E5FF';
+const BG   = '#080810';
+const CARD = '#0F0F1A';
 
 export default function LoginScreen({ navigation }: Props) {
   const { signInWithEmail } = useAuthContext();
@@ -97,7 +99,7 @@ export default function LoginScreen({ navigation }: Props) {
 
         {/* Submit */}
         {loading ? (
-          <ActivityIndicator color={YELLOW} style={styles.spinner} />
+          <ActivityIndicator color={CYAN} style={styles.spinner} />
         ) : (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin} activeOpacity={0.85}>
             <Text style={styles.primaryBtnText}>Sign In</Text>
@@ -117,7 +119,7 @@ export default function LoginScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: BG },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -125,24 +127,25 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
   logo: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: '900',
-    color: YELLOW,
+    color: CYAN,
     textAlign: 'center',
     marginBottom: 8,
-    letterSpacing: 6,
+    letterSpacing: 8,
   },
   tagline: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: 12,
+    color: '#5A5A7A',
     textAlign: 'center',
     marginBottom: 48,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: '#111',
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,229,255,0.15)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 15,
@@ -155,20 +158,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: -4,
   },
-  forgotText: { color: YELLOW, fontSize: 13, fontWeight: '600' },
+  forgotText: { color: CYAN, fontSize: 13, fontWeight: '600' },
   spinner: { marginVertical: 18 },
   primaryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CYAN,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 24,
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
   primaryBtnText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 0.5 },
   link: {
-    color: '#555',
+    color: '#5A5A7A',
     textAlign: 'center',
     fontSize: 14,
   },
-  linkAccent: { color: YELLOW, fontWeight: '700' },
+  linkAccent: { color: CYAN, fontWeight: '700' },
 });

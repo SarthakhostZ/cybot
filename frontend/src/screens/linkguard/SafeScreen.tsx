@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import type { FastScanResult, DeepScanResult } from '@/services/linkguard';
+import { Check } from 'lucide-react-native';
 
 interface Props {
   url: string;
@@ -26,7 +27,6 @@ interface Props {
   autoOpenDelay: number;
 }
 
-const YELLOW = '#F5F000';
 const GREEN  = '#22c55e';
 
 export default function SafeScreen({
@@ -57,7 +57,7 @@ export default function SafeScreen({
       <View style={styles.content}>
         <Animated.View style={[styles.iconWrapper, { transform: [{ scale }], opacity }]}>
           <View style={styles.iconCircle}>
-            <Text style={styles.icon}>✓</Text>
+            <Check size={48} color="#fff" strokeWidth={3} />
           </View>
         </Animated.View>
 
@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     shadowColor: GREEN, shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 0 },
     elevation: 10,
   },
-  icon: { fontSize: 48, color: '#fff', fontWeight: '800' },
 
   title:    { fontSize: 32, fontWeight: '900', color: GREEN, marginBottom: 8 },
   subtitle: { fontSize: 15, color: '#555', marginBottom: 28 },

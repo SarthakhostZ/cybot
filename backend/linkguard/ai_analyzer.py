@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 CACHE_TTL = 21_600  # 6 hours
 
 SYSTEM_PROMPT = (
-    "You are a cybersecurity URL analyst. Analyze the given URL and context "
+    "You are Cybot, an expert cybersecurity URL analyst. Analyze the given URL and context "
     "for phishing, malware, or social engineering indicators. "
-    "Consider: brand impersonation, typosquatting, suspicious path patterns, "
-    "and known attack vectors. "
+    "Consider: brand impersonation, typosquatting, suspicious path patterns, domain history, "
+    "platform identification, and known attack vectors. "
     "Respond with valid JSON only — no markdown, no extra text."
 )
 
-USER_PROMPT_TEMPLATE = """Analyze this URL for security threats:
+USER_PROMPT_TEMPLATE = """Analyze this URL for security threats and provide a detailed assessment:
 URL: {url}
 Domain Age: {domain_age} days
 SSL Valid: {ssl_valid}
@@ -34,7 +34,11 @@ Redirect Count: {redirect_count}
 Google Safe Browsing: {gsb_result}
 
 Return JSON only with exactly these keys:
-{{"risk": "Safe|Suspicious|Dangerous", "confidence": <0-100 integer>, "reason": "<one sentence explanation>"}}"""
+{{
+  "risk": "Safe|Suspicious|Dangerous",
+  "confidence": <0-100 integer>,
+  "reason": "<Detailed 3-5 sentence analysis. Include: (1) what platform or service this URL belongs to, (2) domain history and trustworthiness based on age and SSL, (3) any suspicious patterns or indicators found, (4) redirect behavior assessment, (5) overall safety recommendation for the user.>"
+}}"""
 
 
 def analyze(
@@ -99,7 +103,7 @@ def _call_gpt(url: str, **context) -> dict:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=256,
+            max_tokens=600,
             temperature=0.1,
             response_format={"type": "json_object"},
         )

@@ -42,15 +42,25 @@ const BASE_URL = resolveBaseUrl();
 
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30_000,
+  timeout: 10_000,
   headers: { 'Content-Type': 'application/json' },
+});
+
+// ── In-memory token cache to avoid calling getSession() on every request ──────
+let _cachedToken: string | null = null;
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedToken = session?.access_token ?? null;
 });
 
 // ── Attach Bearer token before every request ──────────────────────────────────
 api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+  // Use cached token first; only hit Supabase if cache is empty (cold start)
+  if (!_cachedToken) {
+    const { data: { session } } = await supabase.auth.getSession();
+    _cachedToken = session?.access_token ?? null;
+  }
+  if (_cachedToken) {
+    config.headers.Authorization = `Bearer ${_cachedToken}`;
   }
   return config;
 });

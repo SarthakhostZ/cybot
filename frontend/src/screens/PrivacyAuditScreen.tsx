@@ -2,7 +2,7 @@
  * src/screens/PrivacyAuditScreen.tsx
  *
  * AI-powered Link Security Scanner.
- * URL → fastScan (client, instant) → deepScan (GPT-4o + server) → rich result
+ * URL → fastScan (client, instant) → deepScan (Cybot + server) → rich result
  */
 
 import React, { useState, useRef } from 'react';
@@ -19,14 +19,15 @@ import {
   Animated,
 } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+import { MessageSquare, Calendar, Lock, ShieldCheck, CornerDownRight } from 'lucide-react-native';
 import { fastScan, deepScan, FastScanResult, DeepScanResult } from '@/services/linkguard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const YELLOW   = '#F5F000';
-const BG       = '#000';
-const CARD_BG  = '#0d0d0d';
-const BORDER   = 'rgba(255,255,255,0.07)';
+const CYAN     = '#00E5FF';
+const BG       = '#080810';
+const CARD_BG  = '#0F0F1A';
+const BORDER   = 'rgba(0,229,255,0.07)';
 
 const RISK_COLOR: Record<string, string> = {
   Safe:      '#22c55e',
@@ -104,7 +105,7 @@ function AICard({ ai }: { ai: DeepScanResult['ai_analysis'] }) {
     return (
       <View style={aiStyles.card}>
         <View style={aiStyles.headerRow}>
-          <View style={aiStyles.gptBadge}><Text style={aiStyles.gptText}>GPT-4o</Text></View>
+          <View style={aiStyles.gptBadge}><Text style={aiStyles.gptText}>Cybot</Text></View>
           <Text style={aiStyles.title}>AI Analysis</Text>
         </View>
         <Text style={aiStyles.unavailable}>AI analysis unavailable for this scan.</Text>
@@ -117,7 +118,7 @@ function AICard({ ai }: { ai: DeepScanResult['ai_analysis'] }) {
   return (
     <View style={[aiStyles.card, { borderColor: riskColor + '33' }]}>
       <View style={aiStyles.headerRow}>
-        <View style={aiStyles.gptBadge}><Text style={aiStyles.gptText}>GPT-4o</Text></View>
+        <View style={aiStyles.gptBadge}><Text style={aiStyles.gptText}>Cybot</Text></View>
         <Text style={aiStyles.title}>AI Analysis</Text>
         <View style={[aiStyles.riskChip, { backgroundColor: riskColor + '22', borderColor: riskColor }]}>
           <Text style={[aiStyles.riskChipText, { color: riskColor }]}>{ai.risk.toUpperCase()}</Text>
@@ -131,7 +132,7 @@ function AICard({ ai }: { ai: DeepScanResult['ai_analysis'] }) {
       </View>
 
       <View style={aiStyles.reasonBox}>
-        <Text style={aiStyles.reasonIcon}>💬</Text>
+        <MessageSquare size={14} color="#5A5A7A" strokeWidth={2} style={{ marginTop: 2, flexShrink: 0 }} />
         <Text style={aiStyles.reasonText}>{ai.reason}</Text>
       </View>
     </View>
@@ -141,17 +142,16 @@ function AICard({ ai }: { ai: DeepScanResult['ai_analysis'] }) {
 const aiStyles = StyleSheet.create({
   card:         { backgroundColor: CARD_BG, borderRadius: 14, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: BORDER },
   headerRow:    { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 8 },
-  gptBadge:     { backgroundColor: '#10a37f22', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: '#10a37f55' },
-  gptText:      { color: '#10a37f', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  gptBadge:     { backgroundColor: '#00E5FF22', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: '#00E5FF55' },
+  gptText:      { color: '#00E5FF', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
   title:        { color: '#fff', fontSize: 14, fontWeight: '800', flex: 1 },
   riskChip:     { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
   riskChipText: { fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   confRow:      { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   confLabel:    { color: '#555', fontSize: 11, fontWeight: '700' },
   confValue:    { fontSize: 11, fontWeight: '900', marginLeft: 8, minWidth: 32, textAlign: 'right' },
-  reasonBox:    { flexDirection: 'row', backgroundColor: '#050505', borderRadius: 8, padding: 12, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
-  reasonIcon:   { fontSize: 14, marginTop: 1 },
-  reasonText:   { color: '#888', fontSize: 12, lineHeight: 19, flex: 1 },
+  reasonBox:    { flexDirection: 'row', backgroundColor: '#06060E', borderRadius: 8, padding: 12, gap: 8, borderWidth: 1, borderColor: 'rgba(0,229,255,0.06)' },
+  reasonText:   { color: '#aaa', fontSize: 13, lineHeight: 21, flex: 1 },
   unavailable:  { color: '#444', fontSize: 12 },
 });
 
@@ -162,13 +162,15 @@ interface SignalProps {
   value: string;
   sub?: string;
   color: string;
-  icon: string;
+  Icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
 }
 
-function SignalCell({ label, value, sub, color, icon }: SignalProps) {
+function SignalCell({ label, value, sub, color, Icon }: SignalProps) {
   return (
     <View style={sigStyles.cell}>
-      <Text style={sigStyles.icon}>{icon}</Text>
+      <View style={sigStyles.iconBox}>
+        <Icon size={18} color={color} strokeWidth={2} />
+      </View>
       <Text style={[sigStyles.value, { color }]}>{value}</Text>
       {sub ? <Text style={sigStyles.sub}>{sub}</Text> : null}
       <Text style={sigStyles.label}>{label}</Text>
@@ -177,11 +179,11 @@ function SignalCell({ label, value, sub, color, icon }: SignalProps) {
 }
 
 const sigStyles = StyleSheet.create({
-  cell:  { flex: 1, backgroundColor: CARD_BG, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: BORDER, minHeight: 90 },
-  icon:  { fontSize: 20, marginBottom: 6 },
-  value: { fontSize: 15, fontWeight: '900', marginBottom: 2 },
-  sub:   { color: '#555', fontSize: 10, fontWeight: '600', marginBottom: 2 },
-  label: { color: '#444', fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textAlign: 'center' },
+  cell:    { flex: 1, backgroundColor: CARD_BG, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: BORDER, minHeight: 90 },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(0,229,255,0.08)', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  value:   { fontSize: 15, fontWeight: '900', marginBottom: 2 },
+  sub:     { color: '#5A5A7A', fontSize: 10, fontWeight: '600', marginBottom: 2 },
+  label:   { color: '#5A5A7A', fontSize: 10, fontWeight: '800', letterSpacing: 0.8, textAlign: 'center' },
 });
 
 // ─── Flag Chip ────────────────────────────────────────────────────────────────
@@ -301,7 +303,7 @@ function ResultPanel({ result }: { result: DeepScanResult; }) {
       <View style={rpStyles.signalRow}>
         <SignalCell
           label="DOMAIN AGE"
-          icon="📅"
+          Icon={Calendar}
           value={domainAge.value}
           sub={domainAge.sub}
           color={domainAge.color}
@@ -309,7 +311,7 @@ function ResultPanel({ result }: { result: DeepScanResult; }) {
         <View style={{ width: 10 }} />
         <SignalCell
           label="SSL CERT"
-          icon="🔒"
+          Icon={Lock}
           value={sslValue}
           color={sslColor}
         />
@@ -317,7 +319,7 @@ function ResultPanel({ result }: { result: DeepScanResult; }) {
       <View style={[rpStyles.signalRow, { marginTop: 10 }]}>
         <SignalCell
           label="GOOGLE SAFE BROWSING"
-          icon="🛡️"
+          Icon={ShieldCheck}
           value={gsbValue}
           sub={gsbFlagged ? google_safe_browsing?.threats?.join(', ') : undefined}
           color={gsbColor}
@@ -325,7 +327,7 @@ function ResultPanel({ result }: { result: DeepScanResult; }) {
         <View style={{ width: 10 }} />
         <SignalCell
           label="REDIRECTS"
-          icon="↩️"
+          Icon={CornerDownRight}
           value={redirectCount === 0 ? 'None' : `${redirectCount}x`}
           color={rdColor}
         />
@@ -389,7 +391,7 @@ const rpStyles = StyleSheet.create({
 const rdChainStyles = StyleSheet.create({
   box:        { backgroundColor: CARD_BG, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: BORDER, marginBottom: 4 },
   row:        { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  stepBadge:  { backgroundColor: '#1a1a1a', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginRight: 10, borderWidth: 1, borderColor: '#f59e0b44', minWidth: 50, alignItems: 'center' },
+  stepBadge:  { backgroundColor: '#12121E', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginRight: 10, borderWidth: 1, borderColor: '#f59e0b44', minWidth: 50, alignItems: 'center' },
   finalBadge: { borderColor: '#22c55e44' },
   stepText:   { color: '#f59e0b', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
   url:        { color: '#555', fontSize: 11, flex: 1 },
@@ -440,10 +442,10 @@ function OfflinePanel({ fastResult, url }: { fastResult: FastScanResult; url: st
 }
 
 const offStyles = StyleSheet.create({
-  banner:        { backgroundColor: '#120e00', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#f59e0b33', marginBottom: 14 },
+  banner:        { backgroundColor: '#0A0A14', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#f59e0b33', marginBottom: 14 },
   title:         { color: '#f59e0b', fontSize: 10, fontWeight: '900', letterSpacing: 2, marginBottom: 6 },
   body:          { color: '#666', fontSize: 12, lineHeight: 18 },
-  whitelist:     { backgroundColor: '#051208', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#22c55e33' },
+  whitelist:     { backgroundColor: '#05100A', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#22c55e33' },
   whitelistText: { color: '#22c55e', fontSize: 12 },
 });
 
@@ -455,7 +457,7 @@ const SCAN_STEPS = [
   'Querying Google Safe Browsing…',
   'Performing WHOIS domain lookup…',
   'Tracing redirect chain…',
-  'Asking GPT-4o for AI verdict…',
+  'Asking Cybot for AI verdict…',
   'Computing hybrid security score…',
 ];
 
@@ -469,7 +471,7 @@ function ScanningIndicator() {
 
   return (
     <View style={scanStyles.box}>
-      <ActivityIndicator color={YELLOW} size="small" style={{ marginBottom: 10 }} />
+      <ActivityIndicator color={CYAN} size="small" style={{ marginBottom: 10 }} />
       <Text style={scanStyles.step}>{SCAN_STEPS[step]}</Text>
       <Text style={scanStyles.note}>Deep AI scan — usually takes 5–15 seconds</Text>
     </View>
@@ -507,7 +509,34 @@ export default function PrivacyAuditScreen() {
 
     // Normalise: add https:// if the user typed a bare domain
     const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    // Keep the input box showing what the user typed, but scan the normalized URL
+
+    // Validate: must be a parseable URL with a proper hostname (e.g. has a dot, min length)
+    try {
+      const parsed = new URL(normalized);
+      const hostname = parsed.hostname.replace(/^www\./, '');
+      // Must have at least one dot and a minimum length like "a.io"
+      if (!hostname.includes('.') || hostname.length < 4) {
+        setState({ kind: 'error', message: 'Enter a valid URL — e.g. https://example.com' });
+        return;
+      }
+      // TLD must be at least 2 chars
+      const parts = hostname.split('.');
+      const tld = parts[parts.length - 1];
+      if (!tld || tld.length < 2) {
+        setState({ kind: 'error', message: 'Enter a valid URL — e.g. https://example.com' });
+        return;
+      }
+      // Domain label before TLD must exist and be non-empty
+      if (!parts[parts.length - 2] || parts[parts.length - 2].length < 1) {
+        setState({ kind: 'error', message: 'Enter a valid URL — e.g. https://example.com' });
+        return;
+      }
+    } catch {
+      setState({ kind: 'error', message: 'Enter a valid URL — e.g. https://example.com' });
+      return;
+    }
+
+    // Keep the input box showing normalized URL
     setUrl(normalized);
 
     setState({ kind: 'scanning' });
@@ -516,7 +545,7 @@ export default function PrivacyAuditScreen() {
     const fast = fastScan(normalized);
 
     try {
-      // Tier-2: full backend + GPT-4o deep scan
+      // Tier-2: full backend + Cybot deep scan
       const deep = await deepScan(normalized, fast.score, fast.flags);
       setState({ kind: 'deep', result: deep });
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
@@ -558,13 +587,13 @@ export default function PrivacyAuditScreen() {
         {/* Header */}
         <Text style={styles.header}>Link Scanner</Text>
         <View style={styles.aiTagRow}>
-          <View style={styles.aiTag}><Text style={styles.aiTagText}>GPT-4o</Text></View>
+          <View style={styles.aiTag}><Text style={styles.aiTagText}>Cybot</Text></View>
           <View style={styles.aiTag}><Text style={styles.aiTagText}>SSL</Text></View>
           <View style={styles.aiTag}><Text style={styles.aiTagText}>WHOIS</Text></View>
           <View style={styles.aiTag}><Text style={styles.aiTagText}>Safe Browsing</Text></View>
         </View>
         <Text style={styles.subtitle}>
-          AI-powered deep analysis — SSL, domain age, blacklists, redirect chains, and GPT-4o threat verdict.
+          AI-powered deep analysis — SSL, domain age, blacklists, redirect chains, and Cybot threat verdict.
         </Text>
 
         {/* Input */}
@@ -643,9 +672,9 @@ const styles = StyleSheet.create({
   subtitle:    { color: '#444', fontSize: 12, lineHeight: 18, marginBottom: 22 },
 
   input: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(0,229,255,0.1)',
     borderRadius: 13,
     paddingHorizontal: 16,
     paddingVertical: 15,
@@ -659,9 +688,9 @@ const styles = StyleSheet.create({
   errorText: { color: '#f87171', fontSize: 13 },
 
   btnRow:    { flexDirection: 'row', gap: 10, marginBottom: 6 },
-  btn:       { flex: 1, backgroundColor: YELLOW, borderRadius: 13, paddingVertical: 15, alignItems: 'center' },
+  btn:       { flex: 1, backgroundColor: CYAN, borderRadius: 13, paddingVertical: 15, alignItems: 'center' },
   btnDisabled: { opacity: 0.55 },
   btnText:   { color: '#000', fontWeight: '900', fontSize: 15 },
-  clearBtn:  { backgroundColor: '#0d0d0d', borderRadius: 13, paddingVertical: 15, paddingHorizontal: 20, alignItems: 'center', borderWidth: 1, borderColor: BORDER },
+  clearBtn:  { backgroundColor: CARD_BG, borderRadius: 13, paddingVertical: 15, paddingHorizontal: 20, alignItems: 'center', borderWidth: 1, borderColor: BORDER },
   clearText: { color: '#555', fontWeight: '700', fontSize: 15 },
 });

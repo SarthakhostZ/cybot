@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import type { FastScanResult, DeepScanResult } from '@/services/linkguard';
+import { ShieldX } from 'lucide-react-native';
 
 interface Props {
   url: string;
@@ -25,7 +26,6 @@ interface Props {
   onGoBack: () => void;
 }
 
-const YELLOW = '#F5F000';
 const DANGER = '#ef4444';
 
 export default function DangerScreen({ url, fastResult, deepResult, onGoBack }: Props) {
@@ -53,7 +53,7 @@ export default function DangerScreen({ url, fastResult, deepResult, onGoBack }: 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View style={[styles.iconWrapper, { transform: [{ scale }], opacity }]}>
           <View style={styles.iconCircle}>
-            <Text style={styles.icon}>🛡️</Text>
+            <ShieldX size={48} color="#fff" strokeWidth={2} />
           </View>
           <View style={styles.blockedBadge}>
             <Text style={styles.blockedText}>BLOCKED</Text>

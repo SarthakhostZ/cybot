@@ -23,10 +23,10 @@ import { Newspaper, RotateCcw, ExternalLink } from 'lucide-react-native';
 import { useCyberNews, NewsCategory, NewsArticle, timeAgo } from '@/hooks/useCyberNews';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-const YELLOW = '#F5F000';
-const BG     = '#000';
-const CARD   = '#0f0f0f';
-const BORDER = 'rgba(255,255,255,0.06)';
+const CYAN   = '#00E5FF';
+const BG     = '#080810';
+const CARD   = '#0F0F1A';
+const BORDER = 'rgba(0,229,255,0.07)';
 
 const CAT_COLOR: Record<string, string> = {
   BREACH:  '#ef4444',
@@ -34,7 +34,7 @@ const CAT_COLOR: Record<string, string> = {
   PATCH:   '#22c55e',
   ALERT:   '#dc2626',
   OTHER:   '#555',
-  ALL:     YELLOW,
+  ALL:     CYAN,
 };
 
 const FILTERS: NewsCategory[] = ['ALL', 'BREACH', 'MALWARE', 'PATCH', 'ALERT'];
@@ -158,7 +158,7 @@ function NewsCard({ item }: NewsCardProps) {
           {/* Row 5: read more */}
           <View style={styles.readRow}>
             <Text style={styles.readText}>Read full story</Text>
-            <ExternalLink size={11} color={YELLOW} strokeWidth={2.5} />
+            <ExternalLink size={11} color={CYAN} strokeWidth={2.5} />
           </View>
 
         </View>
@@ -171,7 +171,7 @@ function EmptyState() {
   return (
     <View style={styles.centerState}>
       <View style={styles.emptyIconWrap}>
-        <Newspaper size={40} color={YELLOW} strokeWidth={1.5} />
+        <Newspaper size={40} color={CYAN} strokeWidth={1.5} />
       </View>
       <Text style={styles.emptyTitle}>No news right now</Text>
       <Text style={styles.emptySubtitle}>Pull down to refresh</Text>
@@ -251,7 +251,7 @@ export default function CyberNewsScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={YELLOW} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={CYAN} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.35}
@@ -270,9 +270,9 @@ const styles = StyleSheet.create({
 
   // Header
   headerRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 4, gap: 10 },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  liveDot:     { width: 9, height: 9, borderRadius: 5, backgroundColor: YELLOW },
-  headerSub:   { color: '#444', fontSize: 12, fontWeight: '600', paddingHorizontal: 16, marginBottom: 14 },
+  headerTitle: { fontSize: 15, fontWeight: '900', color: CYAN, letterSpacing: 3 },
+  liveDot:     { width: 9, height: 9, borderRadius: 5, backgroundColor: CYAN },
+  headerSub:   { color: '#5A5A7A', fontSize: 12, fontWeight: '600', paddingHorizontal: 16, marginBottom: 14 },
 
   // Filters
   filterRow:           { flexDirection: 'row', paddingHorizontal: 12, gap: 6, marginBottom: 14 },
@@ -282,10 +282,10 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: '#111',
+    backgroundColor: CARD,
   },
-  filterTabActive:     { backgroundColor: YELLOW, borderColor: YELLOW },
-  filterTabText:       { color: '#555', fontSize: 12, fontWeight: '700' },
+  filterTabActive:     { backgroundColor: CYAN, borderColor: CYAN },
+  filterTabText:       { color: '#5A5A7A', fontSize: 12, fontWeight: '700' },
   filterTabTextActive: { color: '#000' },
 
   // Card
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 10,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12121E',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
@@ -329,13 +329,13 @@ const styles = StyleSheet.create({
   summaryText: { color: '#555', fontSize: 11, lineHeight: 16, marginBottom: 6 },
 
   readRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  readText: { color: YELLOW, fontSize: 11, fontWeight: '700' },
+  readText: { color: CYAN, fontSize: 11, fontWeight: '700' },
 
   // List
   listContent: { padding: 16, paddingBottom: 40 },
 
   // Skeleton
-  skThumb:   { width: 80, height: 80, borderRadius: 10, backgroundColor: '#1a1a1a', flexShrink: 0 },
+  skThumb:   { width: 80, height: 80, borderRadius: 10, backgroundColor: '#12121E', flexShrink: 0 },
   skContent: { flex: 1, gap: 6 },
   skTopRow:  { flexDirection: 'row', justifyContent: 'space-between' },
   skBadge:   { width: 60, height: 16, borderRadius: 4, backgroundColor: '#222' },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   errorMessage: { color: '#666', fontSize: 13, textAlign: 'center', marginBottom: 20, paddingHorizontal: 32 },
   retryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: YELLOW, borderRadius: 10,
+    backgroundColor: CYAN, borderRadius: 10,
     paddingHorizontal: 20, paddingVertical: 11,
   },
   retryText: { color: '#000', fontSize: 14, fontWeight: '800' },

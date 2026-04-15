@@ -30,6 +30,7 @@ _JWKS_FETCH_TIMEOUT = 5  # seconds
 # ─── Paths that bypass JWT verification ──────────────────────────────────────
 PUBLIC_PATHS = [
     "/admin/",
+    "/health/",
     "/api/v1/threats/public/",
     "/api/v1/threats/news/",
 ]

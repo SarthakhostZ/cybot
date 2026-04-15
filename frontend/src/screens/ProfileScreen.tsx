@@ -22,8 +22,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation }     from '@react-navigation/native';
 import {
-  ArrowLeft, Settings, Pencil,
-  Shield, Clock, History, Lock, Lightbulb, ChevronRight,
+  Settings, Pencil, ShieldCheck,
+  Shield, Clock, History, Lock, Lightbulb, ChevronRight, LogOut,
 } from 'lucide-react-native';
 import { supabase }       from '@/lib/supabase';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -45,13 +45,17 @@ interface ScanStats {
   safe_count:       number;
 }
 
-const YELLOW    = '#F5F000';
-const DARK_CARD = '#1a1a1a';
+const CYAN      = '#00E5FF';
+const BG        = '#080810';
+const CARD      = '#0F0F1A';
+const CARD2     = '#12121E';
+const MUTED     = '#5A5A7A';
+const MUTED2    = '#3A3A5A';
 
 function formatMemberSince(isoDate: string | undefined): string {
   if (!isoDate) return '—';
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 export default function ProfileScreen() {
@@ -70,9 +74,11 @@ export default function ProfileScreen() {
         .from('profiles')
         .select('id, full_name, avatar_url, security_score, role')
         .eq('id', user.id)
-        .single(),
+        .single()
+        .then(({ data }) => data)
+        .catch(() => null),
       api.get<ScanStats>('/linkguard/stats/').catch(() => null),
-    ]).then(([{ data: profileData }, statsRes]) => {
+    ]).then(([profileData, statsRes]) => {
       setProfile(profileData);
       if (statsRes?.data) setStats(statsRes.data);
       setLoading(false);
@@ -104,12 +110,11 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color={YELLOW} />
+        <ActivityIndicator size="large" color={CYAN} />
       </View>
     );
   }
 
-  // Prefer profile full_name, then Supabase user_metadata, then email prefix
   const displayName =
     profile?.full_name?.trim() ||
     user?.user_metadata?.full_name?.trim() ||
@@ -117,24 +122,19 @@ export default function ProfileScreen() {
     'User';
 
   const securityLevel =
-    (profile?.security_score ?? 0) >= 70 ? 'ADVANCED' :
-    (profile?.security_score ?? 0) >= 40 ? 'STANDARD' : 'BASIC';
+    (profile?.security_score ?? 0) >= 70 ? 'Advanced' :
+    (profile?.security_score ?? 0) >= 40 ? 'Standard' : 'Basic';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
       {/* ── Header ───────────────────────────────────────────────────── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-          style={styles.headerBtn}
-        >
-          <ArrowLeft size={22} color="#fff" strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <ShieldCheck size={22} color={CYAN} strokeWidth={2} />
+        <Text style={styles.headerTitle}>SECURITY VAULT</Text>
         <TouchableOpacity style={styles.headerBtn}>
-          <Settings size={22} color="#fff" strokeWidth={2} />
+          <Settings size={22} color={CYAN} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
@@ -145,43 +145,44 @@ export default function ProfileScreen() {
       >
         {/* ── Avatar & Identity ──────────────────────────────────────── */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatarRing}>
-            {user && (
-              <AvatarUploader
-                userId={user.id}
-                currentUrl={profile?.avatar_url ?? null}
-                size={100}
-                onUploaded={handleAvatarUploaded}
-              />
-            )}
-            <View style={styles.editBadge}>
-              <Pencil size={12} color="#000" strokeWidth={2.5} />
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatarRing}>
+              {user && (
+                <AvatarUploader
+                  userId={user.id}
+                  currentUrl={profile?.avatar_url ?? null}
+                  size={96}
+                  onUploaded={handleAvatarUploaded}
+                />
+              )}
             </View>
+            <TouchableOpacity style={styles.editBadge} activeOpacity={0.8}>
+              <Pencil size={11} color={BG} strokeWidth={2.5} />
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.displayName}>{displayName}</Text>
-          <Text style={styles.emailText}>{user?.email ?? ''}</Text>
           <View style={styles.rolePill}>
             <Text style={styles.roleText}>{(profile?.role ?? 'user').toUpperCase()}</Text>
           </View>
         </View>
 
-        {/* ── Stats Bento ───────────────────────────────────────────── */}
+        {/* ── Stats Row ─────────────────────────────────────────────── */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: YELLOW }]}>
+            <Text style={[styles.statNumber, { color: CYAN }]}>
               {stats?.total_scans ?? 0}
             </Text>
             <Text style={styles.statLabel}>SCANS</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: '#FF5252' }]}>
+            <Text style={[styles.statNumber, { color: '#FF4C6A' }]}>
               {stats?.threats_blocked ?? 0}
             </Text>
             <Text style={styles.statLabel}>THREATS</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: '#4CAF50' }]}>
+            <Text style={[styles.statNumber, { color: '#00E096' }]}>
               {stats?.safe_count ?? 0}
             </Text>
             <Text style={styles.statLabel}>SAFE</Text>
@@ -190,65 +191,93 @@ export default function ProfileScreen() {
 
         {/* ── Account Info ──────────────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Account Info</Text>
-          <View style={styles.infoList}>
-            <View style={[styles.infoRow, styles.infoRowBorder]}>
-              <View style={styles.infoLeft}>
-                <Shield size={20} color="#6b6b6b" strokeWidth={1.75} />
-                <Text style={styles.infoName}>Security Level</Text>
+          <Text style={styles.sectionLabel}>ACCOUNT INFO</Text>
+          <View style={styles.cardList}>
+
+            <TouchableOpacity style={styles.listRow} activeOpacity={0.75}>
+              <View style={styles.rowLeft}>
+                <View style={styles.iconBox}>
+                  <Shield size={16} color={CYAN} strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={styles.rowMeta}>SECURITY LEVEL</Text>
+                  <Text style={styles.rowTitle}>{securityLevel}</Text>
+                </View>
               </View>
-              <Text style={[styles.infoValue, { color: YELLOW, fontWeight: '900' }]}>
-                {securityLevel}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <View style={styles.infoLeft}>
-                <Clock size={20} color="#6b6b6b" strokeWidth={1.75} />
-                <Text style={styles.infoName}>Member Since</Text>
+              <ChevronRight size={18} color={MUTED} strokeWidth={2} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.listRow} activeOpacity={0.75}>
+              <View style={styles.rowLeft}>
+                <View style={styles.iconBox}>
+                  <Clock size={16} color={CYAN} strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={styles.rowMeta}>MEMBER SINCE</Text>
+                  <Text style={styles.rowTitle}>{formatMemberSince(user?.created_at)}</Text>
+                </View>
               </View>
-              <Text style={styles.infoValue}>
-                {formatMemberSince(user?.created_at)}
-              </Text>
-            </View>
+              <ChevronRight size={18} color={MUTED} strokeWidth={2} />
+            </TouchableOpacity>
+
           </View>
         </View>
 
         {/* ── Actions ───────────────────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Actions</Text>
-          <View style={styles.actionList}>
+          <Text style={styles.sectionLabel}>ACTIONS</Text>
+          <View style={styles.cardList}>
+
             <TouchableOpacity
-              style={styles.actionBtnWhite}
-              activeOpacity={0.85}
+              style={styles.listRow}
+              activeOpacity={0.75}
               onPress={() => navigation.navigate('ScanHistory')}
             >
-              <View style={styles.actionLeft}>
-                <History size={20} color="#000" strokeWidth={2} />
-                <Text style={styles.actionTextBlack}>View Scan History</Text>
+              <View style={styles.rowLeft}>
+                <View style={styles.iconBox}>
+                  <History size={16} color={CYAN} strokeWidth={2} />
+                </View>
+                <Text style={styles.rowTitle}>View Scan History</Text>
               </View>
-              <ChevronRight size={18} color="rgba(0,0,0,0.3)" strokeWidth={2} />
+              <ChevronRight size={18} color={MUTED} strokeWidth={2} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtnDark} activeOpacity={0.85}>
-              <View style={styles.actionLeft}>
-                <Lock size={20} color="#fff" strokeWidth={2} />
-                <Text style={styles.actionTextWhite}>Privacy Settings</Text>
+            <View style={styles.divider} />
+
+            <TouchableOpacity style={styles.listRow} activeOpacity={0.75}>
+              <View style={styles.rowLeft}>
+                <View style={styles.iconBox}>
+                  <Lock size={16} color={CYAN} strokeWidth={2} />
+                </View>
+                <Text style={styles.rowTitle}>Privacy Settings</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" strokeWidth={2} />
+              <ChevronRight size={18} color={MUTED} strokeWidth={2} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionBtnDark} activeOpacity={0.85}>
-              <View style={styles.actionLeft}>
-                <Lightbulb size={20} color="#fff" strokeWidth={2} />
-                <Text style={styles.actionTextWhite}>Security Tips</Text>
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.listRow}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate('SecurityTips')}
+            >
+              <View style={styles.rowLeft}>
+                <View style={styles.iconBox}>
+                  <Lightbulb size={16} color={CYAN} strokeWidth={2} />
+                </View>
+                <Text style={styles.rowTitle}>Security Tips</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" strokeWidth={2} />
+              <ChevronRight size={18} color={MUTED} strokeWidth={2} />
             </TouchableOpacity>
+
           </View>
         </View>
 
         {/* ── Sign Out ──────────────────────────────────────────────── */}
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.85}>
+          <LogOut size={18} color={BG} strokeWidth={2.5} style={{ marginRight: 10 }} />
           <Text style={styles.signOutText}>SIGN OUT</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -257,11 +286,12 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#000' },
-  loader: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  root:   { flex: 1, backgroundColor: BG },
+  loader: { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 24 },
+  content: { paddingHorizontal: 20, paddingTop: 20 },
 
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -269,121 +299,145 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 56,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#000',
+    borderBottomColor: 'rgba(0,229,255,0.08)',
+    backgroundColor: BG,
   },
   headerBtn:   { padding: 6 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+  headerTitle: {
+    color: CYAN,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
 
-  avatarSection: { alignItems: 'center', marginBottom: 32, marginTop: 8 },
+  // Avatar
+  avatarSection: { alignItems: 'center', marginBottom: 28, marginTop: 12 },
+  avatarWrap:    { position: 'relative', marginBottom: 16 },
   avatarRing: {
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    borderWidth: 2.5,
-    borderColor: YELLOW,
-    padding: 5,
-    marginBottom: 16,
+    width: 112,
+    height: 112,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: CYAN,
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 10,
+    overflow: 'hidden',
   },
   editBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: YELLOW,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: -4,
+    right: -4,
+    backgroundColor: CYAN,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  displayName: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginBottom: 4 },
-  emailText:   { color: '#6b6b6b', fontSize: 13, fontWeight: '500', marginBottom: 10 },
+  displayName: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    marginBottom: 10,
+  },
   rolePill: {
-    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: CYAN,
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 4,
   },
-  roleText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 2 },
+  roleText: {
+    color: CYAN,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2.5,
+  },
 
+  // Stats
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
   statCard: {
     flex: 1,
-    backgroundColor: DARK_CARD,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  statNumber: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
-  statLabel:  { color: '#6b6b6b', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginTop: 3 },
-
-  section:      { marginBottom: 28 },
-  sectionLabel: {
-    color: YELLOW,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
-    marginBottom: 14,
-    paddingLeft: 2,
-  },
-
-  infoList:     { gap: 0 },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  infoRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-  infoLeft:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  infoName:  { color: '#fff', fontSize: 14, fontWeight: '600' },
-  infoValue: { color: '#6b6b6b', fontSize: 14, fontWeight: '500' },
-
-  actionList: { gap: 10 },
-  actionBtnWhite: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  actionBtnDark: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: DARK_CARD,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  actionLeft:      { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  actionTextBlack: { color: '#000', fontSize: 15, fontWeight: '700' },
-  actionTextWhite: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-  signOutBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: CARD,
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: YELLOW,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.07)',
   },
-  signOutText: { color: '#000', fontSize: 14, fontWeight: '900', letterSpacing: 2.5 },
+  statNumber: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5 },
+  statLabel:  { color: MUTED, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginTop: 4 },
+
+  // Sections
+  section:      { marginBottom: 24 },
+  sectionLabel: {
+    color: MUTED,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2.5,
+    marginBottom: 10,
+    paddingLeft: 2,
+  },
+
+  // Card list
+  cardList: {
+    backgroundColor: CARD,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,229,255,0.07)',
+    overflow: 'hidden',
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,229,255,0.10)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rowMeta:  { color: MUTED, fontSize: 9, fontWeight: '700', letterSpacing: 1.5, marginBottom: 2 },
+  rowTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  divider:  { height: 1, backgroundColor: 'rgba(0,229,255,0.06)', marginHorizontal: 16 },
+
+  // Sign Out
+  signOutBtn: {
+    flexDirection: 'row',
+    backgroundColor: CYAN,
+    borderRadius: 14,
+    paddingVertical: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: CYAN,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+    marginTop: 4,
+  },
+  signOutText: {
+    color: BG,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 2.5,
+  },
 });
